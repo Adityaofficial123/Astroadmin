@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mission Control | AstroSoc</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Admin Specific Overrides */
+        .sidebar-link {
+            display: flex; align-items: center; gap: 12px; padding: 12px 20px;
+            color: #94a3b8; border-radius: 8px; transition: all 0.3s; cursor: pointer;
+            margin-bottom: 4px;
+        }
+        .sidebar-link:hover, .sidebar-link.active {
+            background: rgba(0, 242, 254, 0.1); color: var(--cyan-glow);
+            border-left: 3px solid var(--cyan-glow);
+        }
+        .table-row { transition: 0.2s; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .table-row:hover { background: rgba(255,255,255,0.03); }
+        .spinner { border: 3px solid rgba(255,255,255,0.1); border-left-color: var(--cyan-glow); border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block;}
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* Ensure text cursor for input fields */
+        .input-field {
+            cursor: text;
+        }
+    </style>
+</head>
+<body class="bg-[#02040a] text-white font-sans h-screen overflow-hidden flex">
+
+    <!-- Login Overlay -->
+    <div id="loginOverlay" class="fixed inset-0 z-[999] bg-black/95 flex items-center justify-center">
+        <div class="holo-card p-8 w-full max-w-md text-center relative border border-cyan-500/30">
+            <div class="w-16 h-16 mx-auto bg-gradient-to-br from-cyan-500 to-purple-600 rounded-full flex items-center justify-center mb-6 shadow-[0_0_20px_var(--cyan-glow)]">
+                <i class="fas fa-user-astronaut text-3xl text-white"></i>
+            </div>
+            <h2 class="text-2xl font-heading mb-2">Identify Yourself</h2>
+            <p class="text-gray-400 text-sm mb-6">Restricted Access. Authorization Required.</p>
+            
+            <form id="loginForm" class="space-y-4">
+                <input type="email" id="loginEmail" placeholder="Commander's Email" class="input-field w-full bg-black/50" required>
+                <input type="password" id="loginPassword" placeholder="Access Code" class="input-field w-full bg-black/50" required>
+                <button type="submit" class="glow-btn w-full mt-2">Authenticate</button>
+            </form>
+            <p id="authMsg" class="mt-4 text-red-400 text-sm h-5"></p>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-[#050714]/90 border-r border-white/10 flex flex-col backdrop-blur-xl relative z-50 hidden md:flex">
+        <div class="p-6 border-b border-white/5 flex items-center gap-3">
+            <i class="fas fa-meteor text-cyan-400 text-xl"></i>
+            <span class="font-heading text-xl tracking-wider">Admin Panel</span>
+        </div>
+        
+        <nav class="flex-1 p-4 overflow-y-auto">
+            <div class="text-xs font-bold text-gray-600 uppercase tracking-wider mb-2 px-2">Main</div>
+            <div class="sidebar-link active" onclick="switchView('dashboard')">
+                <i class="fas fa-chart-pie w-5"></i> Dashboard
+            </div>
+            <div class="sidebar-link" onclick="switchView('members')">
+                <i class="fas fa-users w-5"></i> Members
+            </div>
+            <div class="sidebar-link" onclick="switchView('events')">
+                <i class="fas fa-calendar-alt w-5"></i>  Events
+            </div>
+            
+            <div class="text-xs font-bold text-gray-600 uppercase tracking-wider mb-2 px-2 mt-6">System</div>
+            <div class="sidebar-link hover:text-red-400" onclick="handleLogout()">
+                <i class="fas fa-sign-out-alt w-5"></i> Abort Session
+            </div>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto relative z-10 p-6 lg:p-10">
+        
+        <!-- Mobile Header -->
+        <div class="md:hidden flex justify-between items-center mb-6">
+            <span class="font-heading text-xl">AstroSoc Admin</span>
+            <button onclick="handleLogout()" class="text-red-400"><i class="fas fa-sign-out-alt"></i></button>
+        </div>
+
+        <!-- VIEW: DASHBOARD -->
+        <div id="view-dashboard" class="view-section animate-fade-in">
+            <h1 class="text-3xl font-heading mb-8 gradient-text">Mission Overview</h1>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="holo-card p-6">
+                    <p class="text-gray-400 text-sm uppercase">Total Crew</p>
+                    <h3 class="text-3xl font-bold text-white mt-1" id="dashMemberCount">0</h3>
+                </div>
+                <div class="holo-card p-6">
+                    <p class="text-gray-400 text-sm uppercase">Active Missions</p>
+                    <h3 class="text-3xl font-bold text-white mt-1" id="dashEventCount">0</h3>
+                </div>
+                 <div class="holo-card p-6">
+                    <p class="text-gray-400 text-sm uppercase">Database Status</p>
+                    <h3 class="text-xl font-bold text-green-400 mt-1">Connected</h3>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW: MEMBERS -->
+        <div id="view-members" class="view-section hidden animate-fade-in">
+            <div class="flex justify-between items-center mb-8">
+                <h1 class="text-3xl font-heading gradient-text">Crew Management</h1>
+                <button onclick="resetMemberForm(); toggleForm('memberFormContainer')" class="glow-btn text-sm">
+                    <i class="fas fa-plus"></i> Add Member
+                </button>
+            </div>
+
+            <!-- Member Form -->
+            <div id="memberFormContainer" class="hidden mb-8">
+                <div class="holo-card p-6 border-l-4 border-l-purple-500">
+                    <h3 class="text-xl font-bold mb-4 text-purple-400">Member Details</h3>
+                    <form id="memberForm" class="grid md:grid-cols-2 gap-6">
+                        <input type="hidden" id="mId"> <!-- Hidden ID for Editing -->
+                        <input type="hidden" id="mExistingImage"> <!-- Store old image URL -->
+                        
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Full Name</label>
+                            <input id="mName" type="text" class="input-field" required>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Role</label>
+                            <input id="mRole" type="text" class="input-field" placeholder="President, Member, etc." required>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Branch</label>
+                            <input id="mBranch" type="text" class="input-field" required>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Year</label>
+                            <select id="mYear" class="input-field bg-black" required>
+                                <option value="First Year">First Year</option>
+                                <option value="Second Year">Second Year</option>
+                                <option value="Third Year">Third Year</option>
+                                <option value="Final Year">Final Year</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="text-xs text-gray-500 block mb-1">Profile Photo</label>
+                            <input id="mImageFile" type="file" accept="image/*" class="text-sm text-gray-400">
+                            <p class="text-[10px] text-gray-600 mt-1">Leave empty to keep current image during edit.</p>
+                        </div>
+
+                        <div class="md:col-span-2 flex justify-end gap-3 pt-4 border-t border-white/10">
+                            <button type="button" onclick="toggleForm('memberFormContainer')" class="px-4 py-2 rounded hover:bg-white/10 transition">Cancel</button>
+                            <button type="submit" id="saveMemberBtn" class="glow-btn">Save to Database</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Members Table -->
+            <div class="holo-card overflow-hidden">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-white/5 text-gray-400 uppercase">
+                        <tr><th class="p-4">Avatar</th><th class="p-4">Info</th><th class="p-4 text-right">Actions</th></tr>
+                    </thead>
+                    <tbody id="membersTableBody" class="text-gray-300"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- VIEW: EVENTS -->
+        <div id="view-events" class="view-section hidden animate-fade-in">
+            <div class="flex justify-between items-center mb-8">
+                <h1 class="text-3xl font-heading gradient-text">Mission Logs</h1>
+                <button onclick="resetEventForm(); toggleForm('eventFormContainer')" class="glow-btn text-sm">
+                    <i class="fas fa-plus"></i> New Mission
+                </button>
+            </div>
+
+            <!-- Event Form -->
+            <div id="eventFormContainer" class="hidden mb-8">
+                <div class="holo-card p-6 border-l-4 border-l-cyan-500">
+                    <h3 class="text-xl font-bold mb-4 text-cyan-400">Event Details</h3>
+                    <form id="eventForm" class="grid md:grid-cols-2 gap-4">
+                        <input type="hidden" id="eId">
+                        <input type="hidden" id="eExistingImage">
+
+                        <div class="md:col-span-2">
+                            <label class="text-xs text-gray-500 block mb-1">Event Title</label>
+                            <input id="eTitle" type="text" class="input-field" required>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Category</label>
+                            <select id="eCategory" class="input-field bg-black" required>
+                                <option value="Workshop">Workshop</option>
+                                <option value="Observation">Observation</option>
+                                <option value="Lecture">Lecture</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Date</label>
+                            <input id="eDate" type="date" class="input-field" required>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Time</label>
+                            <input id="eTime" type="time" class="input-field" required>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Location</label>
+                            <input id="eLocation" type="text" class="input-field" required>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="text-xs text-gray-500 block mb-1">Short Description</label>
+                            <input id="eShort" type="text" class="input-field" required>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="text-xs text-gray-500 block mb-1">Banner Image</label>
+                            <input id="eImageFile" type="file" accept="image/*" class="text-sm text-gray-400">
+                        </div>
+
+                        <div class="md:col-span-2 flex justify-end gap-3 pt-4 border-t border-white/10">
+                            <button type="button" onclick="toggleForm('eventFormContainer')" class="px-4 py-2 rounded hover:bg-white/10 transition">Cancel</button>
+                            <button type="submit" id="saveEventBtn" class="glow-btn">Launch Mission</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-6" id="eventsCardGrid"></div>
+        </div>
+
+    </main>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>
