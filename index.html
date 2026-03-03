@@ -29,7 +29,7 @@
         }
     </style>
 </head>
-<body class="bg-[#02040a] text-white font-sans h-screen overflow-hidden flex">
+<body class="bg-[#02040a] text-white font-sans h-screen flex admin-page">
 
     <!-- Login Overlay -->
     <div id="loginOverlay" class="fixed inset-0 z-[999] bg-black/95 flex items-center justify-center">
@@ -50,13 +50,15 @@
     </div>
 
     <!-- Sidebar -->
-    <aside class="w-64 bg-[#050714]/90 border-r border-white/10 flex flex-col backdrop-blur-xl relative z-50 hidden md:flex">
+    <aside id="adminSidebar" class="w-64 bg-[#050714]/90 border-r border-white/10 flex flex-col backdrop-blur-xl relative z-50 hidden md:flex shrink-0 h-full sticky top-0 overflow-hidden">
+
         <div class="p-6 border-b border-white/5 flex items-center gap-3">
             <i class="fas fa-meteor text-cyan-400 text-xl"></i>
             <span class="font-heading text-xl tracking-wider">Admin Panel</span>
         </div>
         
-        <nav class="flex-1 p-4 overflow-y-auto">
+        <nav class="flex-1 p-4 overflow overscroll-contain">
+
             <div class="text-xs font-bold text-gray-600 uppercase tracking-wider mb-2 px-2">Main</div>
             <div class="sidebar-link active" onclick="switchView('dashboard')">
                 <i class="fas fa-chart-pie w-5"></i> Dashboard
@@ -76,10 +78,11 @@
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 overflow-y-auto relative z-10 p-6 lg:p-10">
-        
+    <main class="flex-1 overflow-y-auto relative z-10 p-6 lg:p-10 min-w-0 h-full overscroll-contain">
+
         <!-- Mobile Header -->
         <div class="md:hidden flex justify-between items-center mb-6">
+            <button id="adminSidebarToggle" class="text-white text-2xl"><i class="fas fa-bars"></i></button>
             <span class="font-heading text-xl">AstroSoc Admin</span>
             <button onclick="handleLogout()" class="text-red-400"><i class="fas fa-sign-out-alt"></i></button>
         </div>
@@ -212,8 +215,20 @@
                             <input id="eShort" type="text" class="input-field" required>
                         </div>
                         <div class="md:col-span-2">
+                            <label class="text-xs text-gray-500 block mb-1">Detailed Description</label>
+                            <textarea id="eLong" class="input-field h-32" required></textarea>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="text-xs text-gray-500 block mb-1">Contributors / Team (comma separated)</label>
+                            <input id="eContrib" type="text" class="input-field" placeholder="Name 1, Name 2, Name 3" required>
+                        </div>
+                        <div class="md:col-span-2">
                             <label class="text-xs text-gray-500 block mb-1">Banner Image</label>
                             <input id="eImageFile" type="file" accept="image/*" class="text-sm text-gray-400">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="text-xs text-gray-500 block mb-1">Program Gallery Images (4-5 images)</label>
+                            <input id="eGalleryFiles" type="file" accept="image/*" multiple class="text-sm text-gray-400">
                         </div>
 
                         <div class="md:col-span-2 flex justify-end gap-3 pt-4 border-t border-white/10">
