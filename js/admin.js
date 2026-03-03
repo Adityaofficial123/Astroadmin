@@ -38,12 +38,31 @@ document.getElementById('loginForm').addEventListener('submit', (e) => {
 
 window.handleLogout = () => auth.signOut();
 
+// --- 4A. MOBILE SIDEBAR TOGGLE ---
+document.addEventListener('DOMContentLoaded', () => {
+    const toggleBtn = document.getElementById('adminSidebarToggle');
+    const sidebar = document.getElementById('adminSidebar');
+    if (toggleBtn && sidebar) {
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('hidden');
+        });
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 768) sidebar.classList.remove('hidden');
+            else sidebar.classList.add('hidden');
+        });
+    }
+});
+
 // --- 4. UI HELPERS ---
 window.switchView = (viewId) => {
     document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
-    event.currentTarget.classList.add('active');
+    if (window.event?.currentTarget) window.event.currentTarget.classList.add('active');
     document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
     document.getElementById(`view-${viewId}`).classList.remove('hidden');
+
+    // Close sidebar on mobile after selecting a view
+    const sidebar = document.getElementById('adminSidebar');
+    if (sidebar && window.innerWidth < 768) sidebar.classList.add('hidden');
 };
 
 window.toggleForm = (id) => {
@@ -69,6 +88,17 @@ async function uploadImageToCloudinary(file) {
         alert("Image upload failed. Check console.");
         return null;
     }
+}
+
+async function uploadManyToCloudinary(files) {
+    const safeFiles = Array.from(files || []).filter(Boolean);
+    if (!safeFiles.length) return [];
+    const urls = [];
+    for (const f of safeFiles) {
+        const u = await uploadImageToCloudinary(f);
+        if (u) urls.push(u);
+    }
+    return urls;
 }
 
 function initDashboard() {
@@ -230,6 +260,11 @@ window.editEvent = (id) => {
     document.getElementById('eTime').value = e.time;
     document.getElementById('eLocation').value = e.location;
     document.getElementById('eShort').value = e.shortDesc;
+    if (document.getElementById('eLong')) document.getElementById('eLong').value = e.longDesc || '';
+    if (document.getElementById('eContrib')) {
+        const contrib = Array.isArray(e.contributors) ? e.contributors.join(', ') : (e.contributors || '');
+        document.getElementById('eContrib').value = contrib;
+    }
     document.getElementById('eExistingImage').value = e.image;
 
     document.getElementById('saveEventBtn').innerText = "Update Mission";
@@ -245,11 +280,20 @@ document.getElementById('eventForm').addEventListener('submit', async (e) => {
 
     const id = document.getElementById('eId').value;
     const file = document.getElementById('eImageFile').files[0];
+    const galleryFiles = document.getElementById('eGalleryFiles')?.files;
     let imageUrl = document.getElementById('eExistingImage').value;
+
+    const existingGallery = eventsData?.[id]?.galleryImages;
+    let galleryUrls = Array.isArray(existingGallery) ? existingGallery : [];
 
     if (file) {
         const uploadedUrl = await uploadImageToCloudinary(file);
         if (uploadedUrl) imageUrl = uploadedUrl;
+    }
+
+    if (galleryFiles && galleryFiles.length) {
+        const uploadedGallery = await uploadManyToCloudinary(galleryFiles);
+        if (uploadedGallery.length) galleryUrls = uploadedGallery;
     }
 
     const payload = {
@@ -259,7 +303,13 @@ document.getElementById('eventForm').addEventListener('submit', async (e) => {
         time: document.getElementById('eTime').value,
         location: document.getElementById('eLocation').value,
         shortDesc: document.getElementById('eShort').value,
-        image: imageUrl
+        longDesc: document.getElementById('eLong')?.value || '',
+        contributors: (document.getElementById('eContrib')?.value || '')
+            .split(',')
+            .map(s => s.trim())
+            .filter(Boolean),
+        image: imageUrl,
+        galleryImages: galleryUrls
     };
 
     try {
