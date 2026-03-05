@@ -1,0 +1,274 @@
+/* =========================================
+   ASTROSOC MASTER STYLES - FUTURISTIC
+   ========================================= */
+   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+
+   :root {
+       --bg-deep: #050714;
+       --cyan-glow: #00f2fe;
+       --purple-glow: #764ba2;
+       --glass-border: rgba(255, 255, 255, 0.1);
+       --glass-bg: rgba(10, 14, 39, 0.6);
+       --nav-height: 60px;
+   }
+   
+   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+ html, body { max-width: 100%; }
+ img, video, canvas { max-width: 100%; height: auto; }
+ 
+ body { overflow-x: hidden; }
+   
+   body {
+       background-color: var(--bg-deep);
+       color: white;
+       font-family: 'Rajdhani', sans-serif;
+       overflow-x: hidden;
+       cursor: none; /* Custom Cursor Active */
+   }
+   
+   body.admin-page { cursor: auto; }
+   body.admin-page * { cursor: auto; }
+   
+   /* --- ENHANCED RESPONSIVE BREAKPOINTS --- */
+@media (max-width: 640px) {
+    .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    
+    h1 {
+        font-size: 2.5rem !important;
+        line-height: 1.2;
+    }
+    
+    .holo-card {
+        border-radius: 12px;
+    }
+    
+    .gradient-text {
+        background-size: 200% 200%;
+        animation: gradientShift 3s ease infinite;
+    }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+    h1 {
+        font-size: 3.5rem !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .nav-links { display: none; }
+    .mobile-toggle { display: block; }
+    #astro-bot-container { 
+        transform: scale(0.8); 
+        margin-bottom: 20px; 
+    }
+    
+    /* Mobile grid adjustments */
+    .grid-responsive {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+    }
+}
+
+/* --- IMPROVED MOBILE NAVIGATION --- */
+.mobile-toggle { display: none; }
+
+.mobile-menu {
+    will-change: transform;
+    transform: translateY(-8px);
+    opacity: 0;
+    transition: transform 0.25s ease, opacity 0.25s ease;
+}
+.mobile-menu.active {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+/* --- ENHANCED CARD RESPONSIVENESS --- */
+@media (max-width: 640px) {
+    .holo-card {
+        padding: 1rem !important;
+    }
+    
+    .holo-card p {
+        font-size: 0.875rem !important;
+    }
+}
+
+/* --- GRADIENT ANIMATION --- */
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* --- LOADING STATES --- */
+.loading-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+   h1, h2, h3, .font-heading { font-family: 'Orbitron', sans-serif; }
+   
+   /* --- CANVAS LAYERS --- */
+   #cursor-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; }
+   #bg-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
+   #bg-canvas, #bg-canvas canvas { width: 100%; height: 100%; }
+   
+   /* --- NAVIGATION --- */
+   nav {
+       position: fixed; top: 0; width: 100%; z-index: 100;
+       background: rgba(5, 7, 20, 0.8); backdrop-filter: blur(12px);
+       border-bottom: 1px solid var(--glass-border);
+       transition: 0.3s;
+       height: var(--nav-height);
+   }
+   
+   .nav-link {
+       position: relative; color: #cbd5e1; font-weight: 600; letter-spacing: 1px; transition: 0.3s;
+   }
+   .nav-link:hover, .nav-link.active { color: var(--cyan-glow); text-shadow: 0 0 10px var(--cyan-glow); }
+   .nav-link::after {
+       content: ''; position: absolute; bottom: -5px; left: 0; width: 0; height: 2px;
+       background: var(--cyan-glow); transition: width 0.3s;
+   }
+   .nav-link:hover::after, .nav-link.active::after { width: 100%; }
+   
+   /* --- HOLOGRAPHIC CARDS --- */
+   .holo-card {
+       background: var(--glass-bg);
+       backdrop-filter: blur(16px);
+       border: 1px solid var(--glass-border);
+       border-radius: 16px;
+       transition: all 0.4s ease;
+       position: relative;
+       overflow: hidden;
+   }
+   
+   .holo-card::before {
+       content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+       background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+       transition: 0.5s;
+   }
+   
+   .holo-card:hover {
+       transform: translateY(-5px) scale(1.01);
+       border-color: var(--cyan-glow);
+       box-shadow: 0 0 30px rgba(0, 242, 254, 0.15);
+   }
+   
+   .holo-card:hover::before { left: 100%; }
+   
+   /* --- BUTTONS --- */
+   .glow-btn {
+       position: relative;
+       padding: 12px 32px;
+       background: transparent;
+       color: var(--cyan-glow);
+       border: 1px solid var(--cyan-glow);
+       border-radius: 4px;
+       font-family: 'Orbitron', sans-serif;
+       font-weight: bold;
+       text-transform: uppercase;
+       letter-spacing: 2px;
+       overflow: hidden;
+       transition: 0.3s;
+       display: inline-block;
+       text-align: center;
+   }
+   
+   .glow-btn:hover {
+       background: var(--cyan-glow);
+       color: #000;
+       box-shadow: 0 0 30px var(--cyan-glow);
+   }
+   
+   .filter-btn {
+       padding: 8px 20px;
+       border: 1px solid var(--glass-border);
+       background: rgba(255,255,255,0.05);
+       color: white;
+       border-radius: 20px;
+       transition: 0.3s;
+   }
+   .filter-btn.active, .filter-btn:hover {
+       background: var(--purple-glow);
+       border-color: var(--purple-glow);
+       box-shadow: 0 0 15px var(--purple-glow);
+   }
+   
+   /* --- 3D ROBOT CSS --- */
+   #astro-bot-container {
+       position: relative; width: 120px; height: 140px; margin: 0 auto;
+       perspective: 800px; z-index: 20;
+   }
+   .astro-bot {
+       position: relative; width: 100%; height: 100%;
+       transform-style: preserve-3d; animation: floatBot 4s ease-in-out infinite;
+   }
+   .bot-head {
+       width: 80px; height: 70px;
+       background: linear-gradient(135deg, #667eea, #764ba2);
+       border-radius: 22px; position: absolute; top: 20px; left: 20px;
+       box-shadow: inset 2px 2px 5px rgba(255,255,255,0.3), 0 0 20px rgba(118, 75, 162, 0.5);
+       transform-style: preserve-3d; transition: transform 0.1s ease-out;
+       border: 1px solid rgba(255,255,255,0.2);
+   }
+   .face {
+       width: 60px; height: 40px; background: #050714; border-radius: 14px;
+       position: absolute; top: 15px; left: 10px; transform: translateZ(10px);
+       box-shadow: 0 0 10px var(--cyan-glow); overflow: hidden;
+       display: flex; justify-content: space-between; align-items: center; padding: 0 12px;
+   }
+   .eye {
+       width: 10px; height: 16px; background: var(--cyan-glow);
+       border-radius: 50px; box-shadow: 0 0 8px var(--cyan-glow);
+       animation: botBlink 4s infinite;
+   }
+   .antenna {
+       position: absolute; top: -15px; left: 35px; width: 4px; height: 15px;
+       background: #9ca3af; transform: translateZ(-5px);
+   }
+   .antenna-ball {
+       position: absolute; top: -8px; left: -3px; width: 10px; height: 10px;
+       background: #f093fb; border-radius: 50%; box-shadow: 0 0 10px #f093fb;
+       animation: pulseAntenna 2s infinite;
+   }
+   .ear {
+       width: 12px; height: 30px; background: #5b4bc4;
+       position: absolute; top: 20px; border-radius: 6px; transform: translateZ(-5px);
+   }
+   .ear.left { left: -12px; } .ear.right { right: -12px; }
+   .bot-shadow {
+       width: 60px; height: 15px; background: rgba(0,0,0,0.5);
+       border-radius: 50%; position: absolute; bottom: -10px; left: 30px;
+       filter: blur(5px); transform: rotateX(90deg); animation: shadowScale 4s infinite;
+   }
+   
+   @keyframes floatBot { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+   @keyframes shadowScale { 0%, 100% { transform: rotateX(90deg) scale(1); opacity: 0.5; } 50% { transform: rotateX(90deg) scale(0.7); opacity: 0.2; } }
+   @keyframes botBlink { 0%, 48%, 52%, 100% { height: 16px; } 50% { height: 2px; } }
+   @keyframes pulseAntenna { 0%, 100% { background: #f093fb; } 50% { background: #fff; } }
+   
+   /* --- RESPONSIVE --- */
+ @media (max-width: 768px) {
+     .nav-links { display: none; }
+     .mobile-toggle { display: block; }
+     h1 { font-size: 2.5rem; }
+     #astro-bot-container { transform: scale(0.8); margin-bottom: 20px; }
+ }
+
+ @media (max-width: 420px) {
+     .glow-btn { padding: 10px 18px; letter-spacing: 1px; }
+ }
+   
+   /* --- UTILITIES --- */
+ .gradient-text { background: linear-gradient(135deg, var(--cyan-glow), var(--purple-glow)); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+ .input-field { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); padding: 12px; color: white; border-radius: 8px; outline: none; transition: 0.3s; }
+ .input-field:focus { border-color: var(--cyan-glow); box-shadow: 0 0 15px rgba(0,242,254,0.2); }
