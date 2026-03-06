@@ -69,6 +69,9 @@
             <div class="sidebar-link" onclick="switchView('events')">
                 <i class="fas fa-calendar-alt w-5"></i>  Events
             </div>
+            <div class="sidebar-link" onclick="switchView('gallery')">
+                <i class="fas fa-images w-5"></i> Gallery
+            </div>
             
             <div class="text-xs font-bold text-gray-600 uppercase tracking-wider mb-2 px-2 mt-6">System</div>
             <div class="sidebar-link hover:text-red-400" onclick="handleLogout()">
@@ -129,7 +132,7 @@
                         </div>
                         <div>
                             <label class="text-xs text-gray-500 block mb-1">Role</label>
-                             <select id="mRole" class="input-field bg-black" required>
+                            <select id="mRole" class="input-field bg-black" required>
                                 <option value="Member">Member</option>
                                 <option value="Technical Member">Technical Member</option>
                                 <option value="Technical Head">Technical Head</option>
@@ -252,6 +255,53 @@
             <div class="grid md:grid-cols-2 gap-6" id="eventsCardGrid"></div>
         </div>
 
+        <!-- VIEW: GALLERY -->
+        <div id="view-gallery" class="view-section hidden animate-fade-in">
+            <div class="flex justify-between items-center mb-8">
+                <h1 class="text-3xl font-heading gradient-text">Gallery Control</h1>
+                <button onclick="resetGalleryForm(); toggleForm('galleryFormContainer')" class="glow-btn text-sm">
+                    <i class="fas fa-plus"></i> Add Media
+                </button>
+            </div>
+
+            <!-- Gallery Form -->
+            <div id="galleryFormContainer" class="hidden mb-8">
+                <div class="holo-card p-6 border-l-4 border-l-blue-500">
+                    <h3 class="text-xl font-bold mb-4 text-blue-400">Gallery Media</h3>
+                    <form id="galleryForm" class="grid md:grid-cols-2 gap-6">
+                        <input type="hidden" id="gId">
+                        <input type="hidden" id="gExistingUrl">
+
+                        <div class="md:col-span-2">
+                            <label class="text-xs text-gray-500 block mb-1">Caption</label>
+                            <input id="gCaption" type="text" class="input-field" placeholder="e.g., Orion Nebula (M42)" required>
+                        </div>
+
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Type</label>
+                            <select id="gType" class="input-field bg-black" required>
+                                <option value="image">Photo</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Upload File</label>
+                            <input id="gFile" type="file" accept="image/*" class="text-sm text-gray-400">
+                            <p class="text-[10px] text-gray-600 mt-1">Choose image file to upload.</p>
+                        </div>
+
+                        <div class="md:col-span-2 flex justify-end gap-3 pt-4 border-t border-white/10">
+                            <button type="button" onclick="toggleForm('galleryFormContainer')" class="px-4 py-2 rounded hover:bg-white/10 transition">Cancel</button>
+                            <button type="submit" id="saveGalleryBtn" class="glow-btn">Save Media</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Gallery Grid -->
+            <div id="adminGalleryGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"></div>
+        </div>
+
     </main>
 
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -261,4 +311,3 @@
     <script src="js/admin.js"></script>
 </body>
 </html>
-
