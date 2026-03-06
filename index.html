@@ -129,7 +129,17 @@
                         </div>
                         <div>
                             <label class="text-xs text-gray-500 block mb-1">Role</label>
-                            <input id="mRole" type="text" class="input-field" placeholder="President, Member, etc." required>
+                             <select id="mRole" class="input-field bg-black" required>
+                                <option value="Member">Member</option>
+                                <option value="Technical Member">Technical Member</option>
+                                <option value="Technical Head">Technical Head</option>
+                                <option value="Founding Member">Founding Member</option>
+                                <option value="Other">Other (custom)</option>
+                            </select>
+                        </div>
+                        <div id="mRoleOtherWrap" class="hidden">
+                            <label class="text-xs text-gray-500 block mb-1">Custom Role</label>
+                            <input id="mRoleOther" type="text" class="input-field" placeholder="President, Secretary, Mentor, etc.">
                         </div>
                         <div>
                             <label class="text-xs text-gray-500 block mb-1">Branch</label>
@@ -251,3 +261,4 @@
     <script src="js/admin.js"></script>
 </body>
 </html>
+
