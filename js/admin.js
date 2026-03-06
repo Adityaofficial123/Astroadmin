@@ -8,6 +8,7 @@ const db = firebase.database();
 // --- 2. STATE & VARIABLES ---
 let membersData = {};
 let eventsData = {};
+let galleryData = {};
 
 // --- 3. AUTHENTICATION ---
 auth.onAuthStateChanged(user => {
@@ -104,6 +105,7 @@ async function uploadManyToCloudinary(files) {
 function initDashboard() {
     fetchMembers();
     fetchEvents();
+    fetchGallery();
 }
 
 // ==========================================
@@ -151,7 +153,30 @@ window.editMember = (id) => {
     
     document.getElementById('mId').value = id;
     document.getElementById('mName').value = m.name;
-    document.getElementById('mRole').value = m.role;
+    const roleSelect = document.getElementById('mRole');
+    const roleOtherWrap = document.getElementById('mRoleOtherWrap');
+    const roleOtherInput = document.getElementById('mRoleOther');
+
+    const knownRoles = new Set([
+        'Member',
+        'Technical Member',
+        'Technical Head',
+        'Founding Member',
+        'Other'
+    ]);
+
+    const roleValue = String(m.role || '').trim();
+    if (roleSelect) {
+        if (knownRoles.has(roleValue)) {
+            roleSelect.value = roleValue;
+            if (roleOtherWrap) roleOtherWrap.classList.add('hidden');
+            if (roleOtherInput) roleOtherInput.value = '';
+        } else {
+            roleSelect.value = 'Other';
+            if (roleOtherWrap) roleOtherWrap.classList.remove('hidden');
+            if (roleOtherInput) roleOtherInput.value = roleValue;
+        }
+    }
     document.getElementById('mBranch').value = m.branch;
     document.getElementById('mYear').value = m.year;
     document.getElementById('mExistingImage').value = m.image;
@@ -162,6 +187,23 @@ window.editMember = (id) => {
     container.classList.remove('hidden');
     container.scrollIntoView({ behavior: 'smooth' });
 };
+
+// Toggle custom role input when selecting "Other"
+document.addEventListener('DOMContentLoaded', () => {
+    const roleSelect = document.getElementById('mRole');
+    const roleOtherWrap = document.getElementById('mRoleOtherWrap');
+    const roleOtherInput = document.getElementById('mRoleOther');
+
+    const sync = () => {
+        if (!roleSelect || !roleOtherWrap) return;
+        const isOther = roleSelect.value === 'Other';
+        roleOtherWrap.classList.toggle('hidden', !isOther);
+        if (!isOther && roleOtherInput) roleOtherInput.value = '';
+    };
+
+    roleSelect?.addEventListener('change', sync);
+    sync();
+});
 
 document.getElementById('memberForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -177,9 +219,16 @@ document.getElementById('memberForm').addEventListener('submit', async (e) => {
         if (uploadedUrl) imageUrl = uploadedUrl;
     }
 
+    const roleSelect = document.getElementById('mRole');
+    const roleOtherInput = document.getElementById('mRoleOther');
+    const roleSelected = String(roleSelect?.value || '').trim();
+    const roleFinal = roleSelected === 'Other'
+        ? String(roleOtherInput?.value || '').trim()
+        : roleSelected;
+
     const payload = {
         name: document.getElementById('mName').value,
-        role: document.getElementById('mRole').value,
+        role: roleFinal,
         branch: document.getElementById('mBranch').value,
         year: document.getElementById('mYear').value,
         image: imageUrl
@@ -329,5 +378,139 @@ document.getElementById('eventForm').addEventListener('submit', async (e) => {
 window.deleteEvent = (id) => {
     if(confirm("Abort mission? This cannot be undone.")) {
         db.ref('events/' + id).remove();
+    }
+};
+
+// ==========================================
+// MODULE: GALLERY
+// ==========================================
+
+function fetchGallery() {
+    db.ref('gallery').on('value', snap => {
+        galleryData = snap.val() || {};
+        renderGallery();
+    });
+}
+
+function renderGallery() {
+    const grid = document.getElementById('adminGalleryGrid');
+    if (!grid) return;
+
+    const entries = Object.entries(galleryData);
+    // newest first if createdAt exists
+    entries.sort((a, b) => (b[1]?.createdAt || 0) - (a[1]?.createdAt || 0));
+
+    if (!entries.length) {
+        grid.innerHTML = '<div class="holo-card p-6 text-gray-400">No media uploaded yet.</div>';
+        return;
+    }
+
+    grid.innerHTML = entries.map(([id, g]) => {
+        const type = (g.type || 'image');
+        const caption = g.caption || '';
+        const url = g.url || '';
+
+        const thumb = type === 'video'
+            ? `<video src="${url}" class="w-full h-48 object-cover" muted playsinline></video>`
+            : `<img src="${url}" class="w-full h-48 object-cover" alt="${caption.replace(/\"/g, '&quot;')}">`;
+
+        return `
+            <div class="holo-card overflow-hidden">
+                <div class="relative">
+                    ${thumb}
+                    <div class="absolute top-3 left-3 text-[10px] uppercase tracking-widest px-2 py-1 rounded border border-white/10 bg-black/50 text-gray-200">${type}</div>
+                </div>
+                <div class="p-4">
+                    <div class="text-white font-semibold">${caption || '—'}</div>
+                    <div class="mt-3 flex gap-3">
+                        <button type="button" onclick="editGallery('${id}')" class="text-xs text-blue-400 uppercase hover:underline">Edit</button>
+                        <button type="button" onclick="deleteGallery('${id}')" class="text-xs text-red-400 uppercase hover:underline">Delete</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+window.resetGalleryForm = () => {
+    const form = document.getElementById('galleryForm');
+    if (form) form.reset();
+    const idEl = document.getElementById('gId');
+    const urlEl = document.getElementById('gExistingUrl');
+    if (idEl) idEl.value = '';
+    if (urlEl) urlEl.value = '';
+    const btn = document.getElementById('saveGalleryBtn');
+    if (btn) btn.innerText = 'Save Media';
+};
+
+window.editGallery = (id) => {
+    const g = galleryData?.[id];
+    if (!g) return;
+
+    const idEl = document.getElementById('gId');
+    const urlEl = document.getElementById('gExistingUrl');
+    const captionEl = document.getElementById('gCaption');
+    const typeEl = document.getElementById('gType');
+    const btn = document.getElementById('saveGalleryBtn');
+
+    if (idEl) idEl.value = id;
+    if (urlEl) urlEl.value = g.url || '';
+    if (captionEl) captionEl.value = g.caption || '';
+    if (typeEl) typeEl.value = g.type || 'image';
+    if (btn) btn.innerText = 'Update Media';
+
+    const container = document.getElementById('galleryFormContainer');
+    container?.classList.remove('hidden');
+    container?.scrollIntoView({ behavior: 'smooth' });
+};
+
+document.getElementById('galleryForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const btn = document.getElementById('saveGalleryBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerText = 'Uploading...';
+    }
+
+    const id = document.getElementById('gId')?.value || '';
+    const caption = document.getElementById('gCaption')?.value || '';
+    const type = document.getElementById('gType')?.value || 'image';
+    const file = document.getElementById('gFile')?.files?.[0];
+    let url = document.getElementById('gExistingUrl')?.value || '';
+
+    if (file) {
+        const uploadedUrl = await uploadImageToCloudinary(file);
+        if (uploadedUrl) url = uploadedUrl;
+    }
+
+    const payload = {
+        caption: String(caption).trim(),
+        type: type === 'video' ? 'video' : 'image',
+        url,
+        createdAt: (galleryData?.[id]?.createdAt) || Date.now()
+    };
+
+    try {
+        if (id) {
+            await db.ref('gallery/' + id).update(payload);
+        } else {
+            await db.ref('gallery').push(payload);
+        }
+        resetGalleryForm();
+        toggleForm('galleryFormContainer');
+    } catch (err) {
+        alert('Error saving gallery item: ' + err.message);
+    }
+
+    if (btn) {
+        btn.disabled = false;
+        btn.innerText = 'Save Media';
+    }
+});
+
+window.deleteGallery = (id) => {
+    if (confirm('Delete this gallery item?')) {
+        db.ref('gallery/' + id).remove();
     }
 };
