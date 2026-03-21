@@ -46,6 +46,7 @@
                 <button type="submit" class="glow-btn w-full mt-2">Authenticate</button>
             </form>
             <p id="authMsg" class="mt-4 text-red-400 text-sm h-5"></p>
+            <p id="authEnvHint" class="mt-1 text-xs text-gray-500"></p>
         </div>
     </div>
 
@@ -60,16 +61,16 @@
         <nav class="flex-1 p-4 overflow overscroll-contain">
 
             <div class="text-xs font-bold text-gray-600 uppercase tracking-wider mb-2 px-2">Main</div>
-            <div class="sidebar-link active" onclick="switchView('dashboard')">
+            <div class="sidebar-link active" onclick="switchView('dashboard', this)">
                 <i class="fas fa-chart-pie w-5"></i> Dashboard
             </div>
-            <div class="sidebar-link" onclick="switchView('members')">
+            <div class="sidebar-link" onclick="switchView('members', this)">
                 <i class="fas fa-users w-5"></i> Members
             </div>
-            <div class="sidebar-link" onclick="switchView('events')">
+            <div class="sidebar-link" onclick="switchView('events', this)">
                 <i class="fas fa-calendar-alt w-5"></i>  Events
             </div>
-            <div class="sidebar-link" onclick="switchView('gallery')">
+            <div class="sidebar-link" onclick="switchView('gallery', this)">
                 <i class="fas fa-images w-5"></i> Gallery
             </div>
             
@@ -93,7 +94,7 @@
         <!-- VIEW: DASHBOARD -->
         <div id="view-dashboard" class="view-section animate-fade-in">
             <h1 class="text-3xl font-heading mb-8 gradient-text">Mission Overview</h1>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
                 <div class="holo-card p-6">
                     <p class="text-gray-400 text-sm uppercase">Total Crew</p>
                     <h3 class="text-3xl font-bold text-white mt-1" id="dashMemberCount">0</h3>
@@ -101,6 +102,10 @@
                 <div class="holo-card p-6">
                     <p class="text-gray-400 text-sm uppercase">Active Missions</p>
                     <h3 class="text-3xl font-bold text-white mt-1" id="dashEventCount">0</h3>
+                </div>
+                <div class="holo-card p-6">
+                    <p class="text-gray-400 text-sm uppercase">Gallery Media</p>
+                    <h3 class="text-3xl font-bold text-white mt-1" id="dashGalleryCount">0</h3>
                 </div>
                  <div class="holo-card p-6">
                     <p class="text-gray-400 text-sm uppercase">Database Status</p>
@@ -137,6 +142,7 @@
                                 <option value="Technical Member">Technical Member</option>
                                 <option value="Technical Head">Technical Head</option>
                                 <option value="Founding Member">Founding Member</option>
+                                <option value="Faculty Advisor">Faculty Advisor</option>
                                 <option value="Other">Other (custom)</option>
                             </select>
                         </div>
@@ -145,10 +151,10 @@
                             <input id="mRoleOther" type="text" class="input-field" placeholder="President, Secretary, Mentor, etc.">
                         </div>
                         <div>
-                            <label class="text-xs text-gray-500 block mb-1">Branch</label>
+                            <label class="text-xs text-gray-500 block mb-1">Branch / Department</label>
                             <input id="mBranch" type="text" class="input-field" required>
                         </div>
-                        <div>
+                        <div id="mYearWrap">
                             <label class="text-xs text-gray-500 block mb-1">Year</label>
                             <select id="mYear" class="input-field bg-black" required>
                                 <option value="First Year">First Year</option>
@@ -157,10 +163,18 @@
                                 <option value="Final Year">Final Year</option>
                             </select>
                         </div>
+                        <div id="mDesignationWrap" class="hidden">
+                            <label class="text-xs text-gray-500 block mb-1">Designation</label>
+                            <input id="mDesignation" type="text" class="input-field" placeholder="e.g., Assistant Professor, HOD">
+                        </div>
                         <div class="md:col-span-2">
                             <label class="text-xs text-gray-500 block mb-1">Profile Photo</label>
                             <input id="mImageFile" type="file" accept="image/*" class="text-sm text-gray-400">
                             <p class="text-[10px] text-gray-600 mt-1">Leave empty to keep current image during edit.</p>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="text-xs text-gray-500 block mb-1">Or Profile Image URL</label>
+                            <input id="mImageUrl" type="url" class="input-field" placeholder="https://example.com/profile.jpg">
                         </div>
 
                         <div class="md:col-span-2 flex justify-end gap-3 pt-4 border-t border-white/10">
@@ -240,6 +254,10 @@
                             <input id="eImageFile" type="file" accept="image/*" class="text-sm text-gray-400">
                         </div>
                         <div class="md:col-span-2">
+                            <label class="text-xs text-gray-500 block mb-1">Or Banner Image URL</label>
+                            <input id="eImageUrl" type="url" class="input-field" placeholder="https://example.com/banner.jpg">
+                        </div>
+                        <div class="md:col-span-2">
                             <label class="text-xs text-gray-500 block mb-1">Program Gallery Images (4-5 images)</label>
                             <input id="eGalleryFiles" type="file" accept="image/*" multiple class="text-sm text-gray-400">
                         </div>
@@ -278,6 +296,46 @@
                         </div>
 
                         <div>
+                            <label class="text-xs text-gray-500 block mb-1">Object / Target Name</label>
+                            <input id="gObjectName" type="text" class="input-field" placeholder="e.g., Orion Nebula (M42)">
+                        </div>
+
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Capture Date</label>
+                            <input id="gCaptureDate" type="date" class="input-field">
+                        </div>
+
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Photographer / Captured By</label>
+                            <input id="gPhotographer" type="text" class="input-field" placeholder="e.g., AAS Team / Member Name">
+                        </div>
+
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Capture Location</label>
+                            <input id="gLocation" type="text" class="input-field" placeholder="e.g., College Observatory Roof">
+                        </div>
+
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Telescope / Lens</label>
+                            <input id="gTelescope" type="text" class="input-field" placeholder='e.g., 8" Dobsonian'>
+                        </div>
+
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Camera / Sensor</label>
+                            <input id="gCamera" type="text" class="input-field" placeholder="e.g., Canon EOS 200D">
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="text-xs text-gray-500 block mb-1">Exposure / Settings</label>
+                            <input id="gExposure" type="text" class="input-field" placeholder="e.g., 25 x 45s, ISO 800, Stacked">
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="text-xs text-gray-500 block mb-1">Detailed Description</label>
+                            <textarea id="gDescription" class="input-field h-28" placeholder="Add scientific/context details about this capture..."></textarea>
+                        </div>
+
+                        <div>
                             <label class="text-xs text-gray-500 block mb-1">Type</label>
                             <select id="gType" class="input-field bg-black" required>
                                 <option value="image">Photo</option>
@@ -290,6 +348,11 @@
                             <p class="text-[10px] text-gray-600 mt-1">Choose image file to upload.</p>
                         </div>
 
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Or Image URL (optional)</label>
+                            <input id="gImageUrl" type="url" class="input-field" placeholder="https://example.com/image.jpg">
+                        </div>
+
                         <div class="md:col-span-2 flex justify-end gap-3 pt-4 border-t border-white/10">
                             <button type="button" onclick="toggleForm('galleryFormContainer')" class="px-4 py-2 rounded hover:bg-white/10 transition">Cancel</button>
                             <button type="submit" id="saveGalleryBtn" class="glow-btn">Save Media</button>
@@ -300,7 +363,7 @@
 
             <!-- Gallery Grid -->
             <div id="adminGalleryGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"></div>
-        </div>
+
 
     </main>
 
