@@ -7,11 +7,17 @@ const firebaseReady = typeof firebase !== 'undefined'
 
 let auth = null;
 let db = null;
+let storage = null;
 
 if (firebaseReady) {
     if (!firebase.apps.length) firebase.initializeApp(CONFIG.firebase);
     auth = firebase.auth();
     db = firebase.database();
+    if (typeof firebase.storage === 'function') {
+        storage = firebase.storage();
+    } else {
+        console.warn('[Admin] Firebase Storage SDK is not loaded. Using Cloudinary or inline database fallback for uploads.');
+    }
 } else {
     console.error('[Admin] Firebase SDK or CONFIG.firebase is missing.');
 }
@@ -22,6 +28,7 @@ let eventsData = {};
 let galleryData = {};
 let settingsData = {};
 let dashboardInitialized = false;
+let inlineUploadNoticeShown = false;
 
 // --- 3. AUTHENTICATION ---
 if (auth) {
@@ -171,31 +178,122 @@ window.toggleForm = (id) => {
     if (!el.classList.contains('hidden')) el.scrollIntoView({ behavior: 'smooth' });
 };
 
-// --- 5. CLOUDINARY UPLOAD SERVICE ---
-async function uploadImageToCloudinary(file) {
-    if (!file) return null;
-    const hasCloudName = !!CONFIG?.cloudinary?.cloudName;
-    const preset = String(CONFIG?.cloudinary?.uploadPreset || '').trim();
-    const hasPreset = preset && preset !== 'your_upload_preset';
-    if (!hasCloudName || !hasPreset) {
-        alert('Cloudinary upload is not configured. Set cloudName and uploadPreset in js/config.js');
-        return null;
-    }
+// --- 5. FILE UPLOAD SERVICE (Cloudinary -> optional Firebase Storage -> inline fallback) ---
+function getCloudinaryConfig() {
+    const cloudName = String(CONFIG?.cloudinary?.cloudName || '').trim();
+    const uploadPreset = String(CONFIG?.cloudinary?.uploadPreset || '').trim();
+    const hasCloudinary = !!cloudName
+        && !!uploadPreset
+        && uploadPreset.toLowerCase() !== 'your_upload_preset';
+    return { cloudName, uploadPreset, hasCloudinary };
+}
 
-    const url = `https://api.cloudinary.com/v1_1/${CONFIG.cloudinary.cloudName}/upload`;
-    const fd = new FormData();
-    fd.append('file', file);
-    fd.append('upload_preset', preset);
+async function uploadImageToFirebaseStorage(file) {
+    if (!storage) throw new Error('Firebase Storage SDK is not available.');
+    const original = String(file?.name || 'upload').trim();
+    const cleanName = original.replace(/[^a-zA-Z0-9._-]+/g, '_');
+    const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${cleanName}`;
+    const ref = storage.ref().child(`uploads/${unique}`);
+    const metadata = {
+        contentType: file?.type || 'application/octet-stream',
+        cacheControl: 'public,max-age=31536000',
+    };
+    await ref.put(file, metadata);
+    return await ref.getDownloadURL();
+}
+
+function readAsDataURL(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(reader.error || new Error('Failed to read file.'));
+        reader.readAsDataURL(file);
+    });
+}
+
+function loadImageFromDataUrl(dataUrl) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('Failed to decode image.'));
+        img.src = dataUrl;
+    });
+}
+
+async function uploadImageInline(file) {
+    const original = await readAsDataURL(file);
+    const isImage = String(file?.type || '').startsWith('image/');
+    if (!isImage) return original;
 
     try {
-        const res = await fetch(url, { method: 'POST', body: fd });
-        const data = await res.json();
-        return data.secure_url;
-    } catch (err) {
-        console.error("Upload Error:", err);
-        alert("Image upload failed. Check console.");
-        return null;
+        const img = await loadImageFromDataUrl(original);
+        const srcW = img.naturalWidth || img.width || 0;
+        const srcH = img.naturalHeight || img.height || 0;
+        if (!srcW || !srcH) return original;
+
+        const maxSide = 1600;
+        const scale = Math.min(1, maxSide / Math.max(srcW, srcH));
+        const needsResize = scale < 1;
+        const needsCompression = (file?.size || 0) > 900 * 1024;
+        if (!needsResize && !needsCompression) return original;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(srcW * scale));
+        canvas.height = Math.max(1, Math.round(srcH * scale));
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return original;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        return canvas.toDataURL('image/jpeg', 0.82);
+    } catch (_) {
+        return original;
     }
+}
+
+async function uploadImageToCloudinary(file) {
+    if (!file) return null;
+    const { cloudName, uploadPreset, hasCloudinary } = getCloudinaryConfig();
+    const shouldUseFirebaseStorage = !!CONFIG?.firebase?.useStorageUploads;
+    if (hasCloudinary) {
+        const url = `https://api.cloudinary.com/v1_1/${cloudName}/upload`;
+        const fd = new FormData();
+        fd.append('file', file);
+        fd.append('upload_preset', uploadPreset);
+
+        try {
+            const res = await fetch(url, { method: 'POST', body: fd });
+            const data = await res.json();
+            if (!res.ok || !data?.secure_url) {
+                const reason = data?.error?.message || `Cloudinary request failed (${res.status})`;
+                throw new Error(reason);
+            }
+            return data.secure_url;
+        } catch (err) {
+            console.error('[Upload] Cloudinary failed:', err);
+            if (shouldUseFirebaseStorage && storage) {
+                try {
+                    return await uploadImageToFirebaseStorage(file);
+                } catch (fbErr) {
+                    console.error('[Upload] Firebase Storage fallback failed:', fbErr);
+                }
+            }
+            return await uploadImageInline(file);
+        }
+    }
+
+    if (shouldUseFirebaseStorage && storage) {
+        try {
+            return await uploadImageToFirebaseStorage(file);
+        } catch (err) {
+            console.error('[Upload] Firebase Storage failed:', err);
+        }
+    }
+
+    if (!inlineUploadNoticeShown) {
+        inlineUploadNoticeShown = true;
+        console.warn('[Upload] Using inline database fallback. Configure Cloudinary preset for production file hosting.');
+    }
+    return await uploadImageInline(file);
 }
 
 async function uploadManyToCloudinary(files) {
@@ -376,6 +474,7 @@ window.editMember = (id) => {
         'Technical Member',
         'Technical Head',
         'Founding Member',
+        'Faculty Advisor',
         'Other'
     ]);
 
@@ -393,6 +492,8 @@ window.editMember = (id) => {
     }
     document.getElementById('mBranch').value = m.branch;
     document.getElementById('mYear').value = m.year;
+    const designationEl = document.getElementById('mDesignation');
+    if (designationEl) designationEl.value = m.designation || '';
     document.getElementById('mExistingImage').value = m.image;
     const imageUrlEl = document.getElementById('mImageUrl');
     if (imageUrlEl) imageUrlEl.value = m.image || '';
@@ -459,13 +560,14 @@ document.getElementById('memberForm').addEventListener('submit', async (e) => {
     const roleFinal = roleSelected === 'Other'
         ? String(roleOtherInput?.value || '').trim()
         : roleSelected;
+    const isFaculty = roleFinal === 'Faculty Advisor';
 
     const payload = {
         name: document.getElementById('mName').value,
         role: roleFinal,
         branch: document.getElementById('mBranch').value,
-        year: document.getElementById('mYear').value,
-        designation: document.getElementById('mDesignation')?.value || '',
+        year: isFaculty ? '' : document.getElementById('mYear').value,
+        designation: isFaculty ? String(document.getElementById('mDesignation')?.value || '').trim() : '',
         image: imageUrl
     };
 
