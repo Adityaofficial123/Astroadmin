@@ -12,7 +12,7 @@
         .sidebar-link {
             display: flex; align-items: center; gap: 12px; padding: 12px 20px;
             color: #94a3b8; border-radius: 8px; transition: all 0.3s; cursor: pointer;
-            margin-bottom: 4px;
+            margin-bottom: 4px;/*  */
         }
         .sidebar-link:hover, .sidebar-link.active {
             background: rgba(0, 242, 254, 0.1); color: var(--cyan-glow);
@@ -128,39 +128,28 @@
                         
                         <div>
                             <label class="text-xs text-gray-500 block mb-1">Full Name</label>
-                            <input id="mName" type="text" class="input-field" required>
+                            <input id="mName" type="text" class="input-field" placeholder="e.g., Arya Shinde">
                         </div>
                         <div>
                             <label class="text-xs text-gray-500 block mb-1">Role</label>
-                            <select id="mRole" class="input-field bg-black" required>
-                                <option value="Member">Member</option>
-                                <option value="Technical Member">Technical Member</option>
-                                <option value="Technical Head">Technical Head</option>
-                                <option value="Founding Member">Founding Member</option>
-                                <option value="Other">Other (custom)</option>
-                            </select>
-                        </div>
-                        <div id="mRoleOtherWrap" class="hidden">
-                            <label class="text-xs text-gray-500 block mb-1">Custom Role</label>
-                            <input id="mRoleOther" type="text" class="input-field" placeholder="President, Secretary, Mentor, etc.">
+                            <input id="mRole" type="text" class="input-field" placeholder="e.g., Member, Technical Head, Principal, HOD">
                         </div>
                         <div>
                             <label class="text-xs text-gray-500 block mb-1">Branch</label>
-                            <input id="mBranch" type="text" class="input-field" required>
+                            <input id="mBranch" type="text" class="input-field" placeholder="e.g., CSE / Faculty">
                         </div>
                         <div>
-                            <label class="text-xs text-gray-500 block mb-1">Year</label>
-                            <select id="mYear" class="input-field bg-black" required>
-                                <option value="First Year">First Year</option>
-                                <option value="Second Year">Second Year</option>
-                                <option value="Third Year">Third Year</option>
-                                <option value="Final Year">Final Year</option>
-                            </select>
+                            <label class="text-xs text-gray-500 block mb-1">Year / Batch</label>
+                            <input id="mYear" type="text" class="input-field" placeholder="e.g., Third Year, 2026 Batch">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="text-xs text-gray-500 block mb-1">Designation (for Faculty / HOD / Principal / Mentor etc.)</label>
+                            <input id="mDesignation" type="text" class="input-field" placeholder="e.g., Principal, HOD CSE, Faculty Advisor">
                         </div>
                         <div class="md:col-span-2">
                             <label class="text-xs text-gray-500 block mb-1">Profile Photo</label>
                             <input id="mImageFile" type="file" accept="image/*" class="text-sm text-gray-400">
-                            <p class="text-[10px] text-gray-600 mt-1">Leave empty to keep current image during edit.</p>
+                            <p class="text-[10px] text-gray-600 mt-1">All fields are optional. Leave image empty to keep current photo during edit.</p>
                         </div>
 
                         <div class="md:col-span-2 flex justify-end gap-3 pt-4 border-t border-white/10">
@@ -272,22 +261,47 @@
                         <input type="hidden" id="gId">
                         <input type="hidden" id="gExistingUrl">
 
-                        <div class="md:col-span-2">
-                            <label class="text-xs text-gray-500 block mb-1">Caption</label>
-                            <input id="gCaption" type="text" class="input-field" placeholder="e.g., Orion Nebula (M42)" required>
-                        </div>
-
                         <div>
-                            <label class="text-xs text-gray-500 block mb-1">Type</label>
-                            <select id="gType" class="input-field bg-black" required>
-                                <option value="image">Photo</option>
-                            </select>
+                            <label class="text-xs text-gray-500 block mb-1">Caption</label>
+                            <input id="gCaption" type="text" class="input-field" placeholder="e.g., Orion Nebula (M42)">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Object Name</label>
+                            <input id="gObjectName" type="text" class="input-field" placeholder="e.g., Nebula">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Capture Date</label>
+                            <input id="gCaptureDate" type="date" class="input-field">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Captured By</label>
+                            <input id="gPhotographer" type="text" class="input-field" placeholder="e.g., AAS Team">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Location</label>
+                            <input id="gLocation" type="text" class="input-field" placeholder="e.g., GCOEA Observatory">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Telescope</label>
+                            <input id="gTelescope" type="text" class="input-field" placeholder="Optional technical detail">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Camera</label>
+                            <input id="gCamera" type="text" class="input-field" placeholder="Optional technical detail">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Exposure</label>
+                            <input id="gExposure" type="text" class="input-field" placeholder="e.g., 45s x 30 frames">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="text-xs text-gray-500 block mb-1">Description</label>
+                            <textarea id="gDescription" class="input-field h-28" placeholder="Optional description for this capture"></textarea>
                         </div>
 
                         <div>
                             <label class="text-xs text-gray-500 block mb-1">Upload File</label>
                             <input id="gFile" type="file" accept="image/*" class="text-sm text-gray-400">
-                            <p class="text-[10px] text-gray-600 mt-1">Choose image file to upload.</p>
+                            <p class="text-[10px] text-gray-600 mt-1">Choose image to add/update. Leave empty while editing to keep current image.</p>
                         </div>
 
                         <div class="md:col-span-2 flex justify-end gap-3 pt-4 border-t border-white/10">
@@ -307,7 +321,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <script src="js/config.js"></script>
-    <script src="js/admin.js"></script>
+    <script src="js/config.js?v=20260402a"></script>
+    <script src="js/admin.js?v=20260402a"></script>
 </body>
 </html>
