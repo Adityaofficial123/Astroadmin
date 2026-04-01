@@ -75,18 +75,35 @@ window.toggleForm = (id) => {
 // --- 5. CLOUDINARY UPLOAD SERVICE ---
 async function uploadImageToCloudinary(file) {
     if (!file) return null;
-    const url = `https://api.cloudinary.com/v1_1/${CONFIG.cloudinary.cloudName}/upload`;
+    const cloudName = String(CONFIG?.cloudinary?.cloudName || '').trim();
+    const uploadPreset = String(CONFIG?.cloudinary?.uploadPreset || '').trim();
+
+    if (!cloudName) {
+        alert("Cloudinary is not configured: missing cloudName in js/config.js");
+        return null;
+    }
+    if (!uploadPreset) {
+        alert("Cloudinary is not configured: missing uploadPreset in js/config.js");
+        return null;
+    }
+
+    const url = `https://api.cloudinary.com/v1_1/${cloudName}/upload`;
     const fd = new FormData();
     fd.append('file', file);
-    fd.append('upload_preset', CONFIG.cloudinary.uploadPreset);
+    fd.append('upload_preset', uploadPreset);
 
     try {
         const res = await fetch(url, { method: 'POST', body: fd });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data?.secure_url) {
+            const msg = data?.error?.message || `HTTP ${res.status}`;
+            alert(`Cloudinary upload failed: ${msg}`);
+            return null;
+        }
         return data.secure_url;
     } catch (err) {
         console.error("Upload Error:", err);
-        alert("Image upload failed. Check console.");
+        alert(`Image upload failed: ${err.message || 'Unknown error'}`);
         return null;
     }
 }
@@ -125,12 +142,14 @@ function renderMembers() {
     tbody.innerHTML = '';
     Object.keys(membersData).forEach(key => {
         const m = membersData[key];
+        const secondary = m.designation || m.year || '';
         tbody.innerHTML += `
         <tr class="table-row">
             <td class="p-4"><img src="${m.image || 'https://via.placeholder.com/40'}" class="w-10 h-10 rounded-full object-cover"></td>
             <td class="p-4">
                 <div class="font-bold text-white">${m.name}</div>
                 <div class="text-xs text-cyan-400">${m.role}</div>
+                ${secondary ? `<div class="text-xs text-gray-400 mt-1">${secondary}</div>` : ''}
             </td>
             <td class="p-4 text-right">
                 <button onclick="editMember('${key}')" class="text-blue-400 hover:text-blue-300 mr-3"><i class="fas fa-pen"></i></button>
@@ -144,6 +163,7 @@ window.resetMemberForm = () => {
     document.getElementById('memberForm').reset();
     document.getElementById('mId').value = '';
     document.getElementById('mExistingImage').value = '';
+    if (document.getElementById('mDesignation')) document.getElementById('mDesignation').value = '';
     document.getElementById('saveMemberBtn').innerText = "Save to Database";
 };
 
@@ -152,34 +172,12 @@ window.editMember = (id) => {
     if(!m) return;
     
     document.getElementById('mId').value = id;
-    document.getElementById('mName').value = m.name;
-    const roleSelect = document.getElementById('mRole');
-    const roleOtherWrap = document.getElementById('mRoleOtherWrap');
-    const roleOtherInput = document.getElementById('mRoleOther');
-
-    const knownRoles = new Set([
-        'Member',
-        'Technical Member',
-        'Technical Head',
-        'Founding Member',
-        'Other'
-    ]);
-
-    const roleValue = String(m.role || '').trim();
-    if (roleSelect) {
-        if (knownRoles.has(roleValue)) {
-            roleSelect.value = roleValue;
-            if (roleOtherWrap) roleOtherWrap.classList.add('hidden');
-            if (roleOtherInput) roleOtherInput.value = '';
-        } else {
-            roleSelect.value = 'Other';
-            if (roleOtherWrap) roleOtherWrap.classList.remove('hidden');
-            if (roleOtherInput) roleOtherInput.value = roleValue;
-        }
-    }
-    document.getElementById('mBranch').value = m.branch;
-    document.getElementById('mYear').value = m.year;
-    document.getElementById('mExistingImage').value = m.image;
+    document.getElementById('mName').value = m.name || '';
+    document.getElementById('mRole').value = m.role || '';
+    document.getElementById('mBranch').value = m.branch || '';
+    document.getElementById('mYear').value = m.year || '';
+    if (document.getElementById('mDesignation')) document.getElementById('mDesignation').value = m.designation || '';
+    document.getElementById('mExistingImage').value = m.image || '';
     
     document.getElementById('saveMemberBtn').innerText = "Update Member";
     
@@ -187,23 +185,6 @@ window.editMember = (id) => {
     container.classList.remove('hidden');
     container.scrollIntoView({ behavior: 'smooth' });
 };
-
-// Toggle custom role input when selecting "Other"
-document.addEventListener('DOMContentLoaded', () => {
-    const roleSelect = document.getElementById('mRole');
-    const roleOtherWrap = document.getElementById('mRoleOtherWrap');
-    const roleOtherInput = document.getElementById('mRoleOther');
-
-    const sync = () => {
-        if (!roleSelect || !roleOtherWrap) return;
-        const isOther = roleSelect.value === 'Other';
-        roleOtherWrap.classList.toggle('hidden', !isOther);
-        if (!isOther && roleOtherInput) roleOtherInput.value = '';
-    };
-
-    roleSelect?.addEventListener('change', sync);
-    sync();
-});
 
 document.getElementById('memberForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -219,18 +200,13 @@ document.getElementById('memberForm').addEventListener('submit', async (e) => {
         if (uploadedUrl) imageUrl = uploadedUrl;
     }
 
-    const roleSelect = document.getElementById('mRole');
-    const roleOtherInput = document.getElementById('mRoleOther');
-    const roleSelected = String(roleSelect?.value || '').trim();
-    const roleFinal = roleSelected === 'Other'
-        ? String(roleOtherInput?.value || '').trim()
-        : roleSelected;
-
+    const clean = (value) => String(value || '').trim();
     const payload = {
-        name: document.getElementById('mName').value,
-        role: roleFinal,
-        branch: document.getElementById('mBranch').value,
-        year: document.getElementById('mYear').value,
+        name: clean(document.getElementById('mName').value),
+        role: clean(document.getElementById('mRole').value),
+        branch: clean(document.getElementById('mBranch').value),
+        year: clean(document.getElementById('mYear').value),
+        designation: clean(document.getElementById('mDesignation')?.value),
         image: imageUrl
     };
 
@@ -408,6 +384,8 @@ function renderGallery() {
     grid.innerHTML = entries.map(([id, g]) => {
         const type = (g.type || 'image');
         const caption = g.caption || '';
+        const objectName = g.objectName || '';
+        const captureDate = g.captureDate || '';
         const url = g.url || '';
 
         const thumb = type === 'video'
@@ -421,7 +399,9 @@ function renderGallery() {
                     <div class="absolute top-3 left-3 text-[10px] uppercase tracking-widest px-2 py-1 rounded border border-white/10 bg-black/50 text-gray-200">${type}</div>
                 </div>
                 <div class="p-4">
-                    <div class="text-white font-semibold">${caption || '—'}</div>
+                    <div class="text-white font-semibold">${caption || '-'}</div>
+                    ${objectName ? `<div class="text-xs text-cyan-300 mt-1">${objectName}</div>` : ''}
+                    ${captureDate ? `<div class="text-xs text-gray-400 mt-1">${captureDate}</div>` : ''}
                     <div class="mt-3 flex gap-3">
                         <button type="button" onclick="editGallery('${id}')" class="text-xs text-blue-400 uppercase hover:underline">Edit</button>
                         <button type="button" onclick="deleteGallery('${id}')" class="text-xs text-red-400 uppercase hover:underline">Delete</button>
@@ -439,6 +419,14 @@ window.resetGalleryForm = () => {
     const urlEl = document.getElementById('gExistingUrl');
     if (idEl) idEl.value = '';
     if (urlEl) urlEl.value = '';
+    if (document.getElementById('gObjectName')) document.getElementById('gObjectName').value = '';
+    if (document.getElementById('gCaptureDate')) document.getElementById('gCaptureDate').value = '';
+    if (document.getElementById('gDescription')) document.getElementById('gDescription').value = '';
+    if (document.getElementById('gPhotographer')) document.getElementById('gPhotographer').value = '';
+    if (document.getElementById('gLocation')) document.getElementById('gLocation').value = '';
+    if (document.getElementById('gTelescope')) document.getElementById('gTelescope').value = '';
+    if (document.getElementById('gCamera')) document.getElementById('gCamera').value = '';
+    if (document.getElementById('gExposure')) document.getElementById('gExposure').value = '';
     const btn = document.getElementById('saveGalleryBtn');
     if (btn) btn.innerText = 'Save Media';
 };
@@ -450,13 +438,30 @@ window.editGallery = (id) => {
     const idEl = document.getElementById('gId');
     const urlEl = document.getElementById('gExistingUrl');
     const captionEl = document.getElementById('gCaption');
-    const typeEl = document.getElementById('gType');
+    const objectEl = document.getElementById('gObjectName');
+    const captureDateEl = document.getElementById('gCaptureDate');
+    const descriptionEl = document.getElementById('gDescription');
+    const photographerEl = document.getElementById('gPhotographer');
+    const locationEl = document.getElementById('gLocation');
+    const telescopeEl = document.getElementById('gTelescope');
+    const cameraEl = document.getElementById('gCamera');
+    const exposureEl = document.getElementById('gExposure');
     const btn = document.getElementById('saveGalleryBtn');
 
     if (idEl) idEl.value = id;
     if (urlEl) urlEl.value = g.url || '';
     if (captionEl) captionEl.value = g.caption || '';
-    if (typeEl) typeEl.value = g.type || 'image';
+    if (objectEl) objectEl.value = g.objectName || '';
+    if (captureDateEl) {
+        const raw = String(g.captureDate || '').trim();
+        captureDateEl.value = raw ? raw.slice(0, 10) : '';
+    }
+    if (descriptionEl) descriptionEl.value = g.description || '';
+    if (photographerEl) photographerEl.value = g.photographer || '';
+    if (locationEl) locationEl.value = g.location || '';
+    if (telescopeEl) telescopeEl.value = g.telescope || '';
+    if (cameraEl) cameraEl.value = g.camera || '';
+    if (exposureEl) exposureEl.value = g.exposure || '';
     if (btn) btn.innerText = 'Update Media';
 
     const container = document.getElementById('galleryFormContainer');
@@ -474,8 +479,16 @@ document.getElementById('galleryForm')?.addEventListener('submit', async (e) => 
     }
 
     const id = document.getElementById('gId')?.value || '';
-    const caption = document.getElementById('gCaption')?.value || '';
-    const type = document.getElementById('gType')?.value || 'image';
+    const clean = (v) => String(v || '').trim();
+    const caption = clean(document.getElementById('gCaption')?.value);
+    const objectName = clean(document.getElementById('gObjectName')?.value);
+    const captureDate = clean(document.getElementById('gCaptureDate')?.value);
+    const description = clean(document.getElementById('gDescription')?.value);
+    const photographer = clean(document.getElementById('gPhotographer')?.value);
+    const location = clean(document.getElementById('gLocation')?.value);
+    const telescope = clean(document.getElementById('gTelescope')?.value);
+    const camera = clean(document.getElementById('gCamera')?.value);
+    const exposure = clean(document.getElementById('gExposure')?.value);
     const file = document.getElementById('gFile')?.files?.[0];
     let url = document.getElementById('gExistingUrl')?.value || '';
 
@@ -483,10 +496,26 @@ document.getElementById('galleryForm')?.addEventListener('submit', async (e) => 
         const uploadedUrl = await uploadImageToCloudinary(file);
         if (uploadedUrl) url = uploadedUrl;
     }
+    if (!url) {
+        alert('Please upload an image file for this gallery item.');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerText = 'Save Media';
+        }
+        return;
+    }
 
     const payload = {
-        caption: String(caption).trim(),
-        type: type === 'video' ? 'video' : 'image',
+        caption: caption || 'Untitled Capture',
+        objectName,
+        captureDate,
+        description,
+        photographer,
+        location,
+        telescope,
+        camera,
+        exposure,
+        type: 'image',
         url,
         createdAt: (galleryData?.[id]?.createdAt) || Date.now()
     };
@@ -514,3 +543,4 @@ window.deleteGallery = (id) => {
         db.ref('gallery/' + id).remove();
     }
 };
+
