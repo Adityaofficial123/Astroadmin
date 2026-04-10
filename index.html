@@ -46,6 +46,7 @@
                 <button type="submit" class="glow-btn w-full mt-2">Authenticate</button>
             </form>
             <p id="authMsg" class="mt-4 text-red-400 text-sm h-5"></p>
+            <p id="authEnvHint" class="mt-1 text-xs text-gray-500"></p>
         </div>
     </div>
 
@@ -60,17 +61,20 @@
         <nav class="flex-1 p-4 overflow overscroll-contain">
 
             <div class="text-xs font-bold text-gray-600 uppercase tracking-wider mb-2 px-2">Main</div>
-            <div class="sidebar-link active" onclick="switchView('dashboard')">
+            <div class="sidebar-link active" onclick="switchView('dashboard', this)">
                 <i class="fas fa-chart-pie w-5"></i> Dashboard
             </div>
-            <div class="sidebar-link" onclick="switchView('members')">
+            <div class="sidebar-link" onclick="switchView('members', this)">
                 <i class="fas fa-users w-5"></i> Members
             </div>
-            <div class="sidebar-link" onclick="switchView('events')">
+            <div class="sidebar-link" onclick="switchView('events', this)">
                 <i class="fas fa-calendar-alt w-5"></i>  Events
             </div>
-            <div class="sidebar-link" onclick="switchView('gallery')">
+            <div class="sidebar-link" onclick="switchView('gallery', this)">
                 <i class="fas fa-images w-5"></i> Gallery
+            </div>
+            <div class="sidebar-link" onclick="switchView('announcements', this)">
+                <i class="fas fa-bullhorn w-5"></i> Announcements
             </div>
             
             <div class="text-xs font-bold text-gray-600 uppercase tracking-wider mb-2 px-2 mt-6">System</div>
@@ -93,7 +97,7 @@
         <!-- VIEW: DASHBOARD -->
         <div id="view-dashboard" class="view-section animate-fade-in">
             <h1 class="text-3xl font-heading mb-8 gradient-text">Mission Overview</h1>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6 mb-8">
                 <div class="holo-card p-6">
                     <p class="text-gray-400 text-sm uppercase">Total Crew</p>
                     <h3 class="text-3xl font-bold text-white mt-1" id="dashMemberCount">0</h3>
@@ -101,6 +105,14 @@
                 <div class="holo-card p-6">
                     <p class="text-gray-400 text-sm uppercase">Active Missions</p>
                     <h3 class="text-3xl font-bold text-white mt-1" id="dashEventCount">0</h3>
+                </div>
+                <div class="holo-card p-6">
+                    <p class="text-gray-400 text-sm uppercase">Gallery Media</p>
+                    <h3 class="text-3xl font-bold text-white mt-1" id="dashGalleryCount">0</h3>
+                </div>
+                <div class="holo-card p-6">
+                    <p class="text-gray-400 text-sm uppercase">Announcements</p>
+                    <h3 class="text-3xl font-bold text-white mt-1" id="dashAnnouncementCount">0</h3>
                 </div>
                  <div class="holo-card p-6">
                     <p class="text-gray-400 text-sm uppercase">Database Status</p>
@@ -137,6 +149,7 @@
                                 <option value="Technical Member">Technical Member</option>
                                 <option value="Technical Head">Technical Head</option>
                                 <option value="Founding Member">Founding Member</option>
+                                <option value="Faculty Advisor">Faculty Advisor</option>
                                 <option value="Other">Other (custom)</option>
                             </select>
                         </div>
@@ -145,10 +158,10 @@
                             <input id="mRoleOther" type="text" class="input-field" placeholder="President, Secretary, Mentor, etc.">
                         </div>
                         <div>
-                            <label class="text-xs text-gray-500 block mb-1">Branch</label>
+                            <label class="text-xs text-gray-500 block mb-1">Branch / Department</label>
                             <input id="mBranch" type="text" class="input-field" required>
                         </div>
-                        <div>
+                        <div id="mYearWrap">
                             <label class="text-xs text-gray-500 block mb-1">Year</label>
                             <select id="mYear" class="input-field bg-black" required>
                                 <option value="First Year">First Year</option>
@@ -157,10 +170,18 @@
                                 <option value="Final Year">Final Year</option>
                             </select>
                         </div>
+                        <div id="mDesignationWrap" class="hidden">
+                            <label class="text-xs text-gray-500 block mb-1">Designation</label>
+                            <input id="mDesignation" type="text" class="input-field" placeholder="e.g., Assistant Professor, HOD">
+                        </div>
                         <div class="md:col-span-2">
                             <label class="text-xs text-gray-500 block mb-1">Profile Photo</label>
                             <input id="mImageFile" type="file" accept="image/*" class="text-sm text-gray-400">
                             <p class="text-[10px] text-gray-600 mt-1">Leave empty to keep current image during edit.</p>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="text-xs text-gray-500 block mb-1">Or Profile Image URL</label>
+                            <input id="mImageUrl" type="url" class="input-field" placeholder="https://example.com/profile.jpg">
                         </div>
 
                         <div class="md:col-span-2 flex justify-end gap-3 pt-4 border-t border-white/10">
@@ -240,6 +261,10 @@
                             <input id="eImageFile" type="file" accept="image/*" class="text-sm text-gray-400">
                         </div>
                         <div class="md:col-span-2">
+                            <label class="text-xs text-gray-500 block mb-1">Or Banner Image URL</label>
+                            <input id="eImageUrl" type="url" class="input-field" placeholder="https://example.com/banner.jpg">
+                        </div>
+                        <div class="md:col-span-2">
                             <label class="text-xs text-gray-500 block mb-1">Program Gallery Images (4-5 images)</label>
                             <input id="eGalleryFiles" type="file" accept="image/*" multiple class="text-sm text-gray-400">
                         </div>
@@ -278,6 +303,46 @@
                         </div>
 
                         <div>
+                            <label class="text-xs text-gray-500 block mb-1">Object / Target Name</label>
+                            <input id="gObjectName" type="text" class="input-field" placeholder="e.g., Orion Nebula (M42)">
+                        </div>
+
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Capture Date</label>
+                            <input id="gCaptureDate" type="date" class="input-field">
+                        </div>
+
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Photographer / Captured By</label>
+                            <input id="gPhotographer" type="text" class="input-field" placeholder="e.g., AAS Team / Member Name">
+                        </div>
+
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Capture Location</label>
+                            <input id="gLocation" type="text" class="input-field" placeholder="e.g., College Observatory Roof">
+                        </div>
+
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Telescope / Lens</label>
+                            <input id="gTelescope" type="text" class="input-field" placeholder='e.g., 8" Dobsonian'>
+                        </div>
+
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Camera / Sensor</label>
+                            <input id="gCamera" type="text" class="input-field" placeholder="e.g., Canon EOS 200D">
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="text-xs text-gray-500 block mb-1">Exposure / Settings</label>
+                            <input id="gExposure" type="text" class="input-field" placeholder="e.g., 25 x 45s, ISO 800, Stacked">
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="text-xs text-gray-500 block mb-1">Detailed Description</label>
+                            <textarea id="gDescription" class="input-field h-28" placeholder="Add scientific/context details about this capture..."></textarea>
+                        </div>
+
+                        <div>
                             <label class="text-xs text-gray-500 block mb-1">Type</label>
                             <select id="gType" class="input-field bg-black" required>
                                 <option value="image">Photo</option>
@@ -288,6 +353,11 @@
                             <label class="text-xs text-gray-500 block mb-1">Upload File</label>
                             <input id="gFile" type="file" accept="image/*" class="text-sm text-gray-400">
                             <p class="text-[10px] text-gray-600 mt-1">Choose image file to upload.</p>
+                        </div>
+
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Or Image URL (optional)</label>
+                            <input id="gImageUrl" type="url" class="input-field" placeholder="https://example.com/image.jpg">
                         </div>
 
                         <div class="md:col-span-2 flex justify-end gap-3 pt-4 border-t border-white/10">
@@ -302,11 +372,93 @@
             <div id="adminGalleryGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"></div>
         </div>
 
+        <!-- VIEW: ANNOUNCEMENTS -->
+        <div id="view-announcements" class="view-section hidden animate-fade-in">
+            <div class="flex justify-between items-center mb-8">
+                <h1 class="text-3xl font-heading gradient-text">Announcement Control</h1>
+                <button onclick="resetAnnouncementForm(); toggleForm('announcementFormContainer')" class="glow-btn text-sm">
+                    <i class="fas fa-plus"></i> Add Announcement
+                </button>
+            </div>
+
+            <div id="announcementFormContainer" class="hidden mb-8">
+                <div class="holo-card p-6 border-l-4 border-l-amber-500">
+                    <h3 class="text-xl font-bold mb-4 text-amber-400">Announcement Details</h3>
+                    <form id="announcementForm" class="grid md:grid-cols-2 gap-6">
+                        <input type="hidden" id="aId">
+
+                        <div class="md:col-span-2">
+                            <label class="text-xs text-gray-500 block mb-1">Title</label>
+                            <input id="aTitle" type="text" class="input-field" placeholder="e.g., National Astronomy Day Observation Drive" required>
+                        </div>
+
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Publish Date</label>
+                            <input id="aDate" type="date" class="input-field" required>
+                        </div>
+
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Tag</label>
+                            <input id="aTag" type="text" class="input-field" placeholder="Update, Notice, Event, Result...">
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="text-xs text-gray-500 block mb-1">Description</label>
+                            <textarea id="aBody" class="input-field h-28" placeholder="Write your announcement details..." required></textarea>
+                        </div>
+
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Link Label (optional)</label>
+                            <input id="aLinkLabel" type="text" class="input-field" placeholder="Read more, Register now...">
+                        </div>
+
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Link URL (optional)</label>
+                            <input id="aLinkUrl" type="url" class="input-field" placeholder="https://example.com">
+                        </div>
+
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-2">Visibility</label>
+                            <select id="aStatus" class="input-field bg-black" required>
+                                <option value="published">Published</option>
+                                <option value="draft">Draft</option>
+                            </select>
+                        </div>
+
+                        <div class="flex items-center gap-3">
+                            <input id="aPinned" type="checkbox" class="h-4 w-4 accent-cyan-400">
+                            <label for="aPinned" class="text-sm text-gray-300">Pin as latest highlight</label>
+                        </div>
+
+                        <div class="md:col-span-2 flex justify-end gap-3 pt-4 border-t border-white/10">
+                            <button type="button" onclick="toggleForm('announcementFormContainer')" class="px-4 py-2 rounded hover:bg-white/10 transition">Cancel</button>
+                            <button type="submit" id="saveAnnouncementBtn" class="glow-btn">Publish Announcement</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="holo-card overflow-hidden">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-white/5 text-gray-400 uppercase">
+                        <tr>
+                            <th class="p-4">Announcement</th>
+                            <th class="p-4">Status</th>
+                            <th class="p-4">Date</th>
+                            <th class="p-4 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="announcementsTableBody" class="text-gray-300"></tbody>
+                </table>
+            </div>
+        </div>
+
     </main>
 
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
     <script src="js/config.js"></script>
     <script src="js/admin.js"></script>
 </body>
